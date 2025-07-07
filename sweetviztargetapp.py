@@ -3,8 +3,7 @@ import pandas as pd
 import sweetviz as sv
 import numpy as np  # Used for numerical type detection
 import warnings
-import os
-import streamlit.components.v1 as components # <-- THIS LINE IS CRUCIAL FOR EMBEDDING HTML
+import streamlit.components.v1 as components
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -13,12 +12,12 @@ warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 st.set_page_config(
     page_title="Sweetviz ML Prep App",
-    page_icon="📊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("📊 Sweetviz ML Prep App: Feature & Target Selection")
+st.title(" Sweetviz ML Prep App: Feature & Target Selection")
 st.markdown(
     "Upload a *CSV* or *Excel (.xlsx)* file, then select your features (X) and target (y) for a tailored Sweetviz report.")
 
@@ -69,7 +68,6 @@ if uploaded_file is not None:
             all_columns = df.columns.tolist()
 
             # --- Feature Inputs (X) ---
-            # Corrected: Removed duplicate 'col'
             selected_features = st.multiselect(
                 "Select your *Feature Columns (X)*:",
                 options=all_columns,
@@ -98,49 +96,28 @@ if uploaded_file is not None:
                     with st.spinner("Generating Sweetviz report... This might take a moment."):
                         try:
                             my_report = sv.analyze(df, target_feat=target_feat_for_sv)
-
-                            report_html_path = "sweetviz_ml_prep_report.html"
-                            # This line is the one that causes the AttributeError if Sweetviz is too old
-                            my_report.save_html(report_html_path) 
+                            report_html = my_report.to_html()
 
                             st.success("Sweetviz report generated!")
                             st.write("### Interactive Report:")
 
-                            if os.path.exists(report_html_path):
-                                with open(report_html_path, "r", encoding="utf-8") as f:
-                                    html_content = f.read()
+                            components.html(report_html, height=1000, scrolling=True)
 
-                                # --- DIRECTLY EMBED THE REPORT IN STREAMLIT ---
-                                components.html(html_content, height=1000, scrolling=True) # Adjust height as needed
-
-                                st.download_button(
-                                    label="Download Sweetviz Report (HTML)",
-                                    data=html_content.encode('utf-8'),
-                                    file_name="sweetviz_ml_prep_report.html",
-                                    mime="text/html"
-                                )
-                                st.info("""
-                                The interactive Sweetviz report is displayed above!
-                                If you selected a target variable, Sweetviz shows its relationship with all other features.
-                                You can also download the report using the button above.
-                                """)
-                            else:
-                                st.error(f"Sweetviz report HTML file not found at {report_html_path}.")
-
-                        except AttributeError as e:
-                            st.error(f"**Sweetviz Error:** {e}")
-                            st.warning("It seems Sweetviz could not generate or save the report. "
-                                       "This often happens if the installed Sweetviz version is too old on the server, "
-                                       "or if there's an internal issue with the report object.")
-                            st.info("You can still view basic data information using the options above.")
-                            st.exception(e) # Show full traceback for debugging
+                            st.download_button(
+                                label="Download Sweetviz Report (HTML)",
+                                data=report_html.encode('utf-8'),
+                                file_name="sweetviz_ml_prep_report.html",
+                                mime="text/html"
+                            )
+                            st.info("""
+                            The interactive Sweetviz report is displayed above!
+                            If you selected a target variable, Sweetviz shows its relationship with all other features.
+                            You can also download the report using the button above.
+                            """)
 
                         except Exception as e:
                             st.error(f"An unexpected error occurred while generating the Sweetviz report: {e}")
                             st.exception(e)
-                        finally:
-                            if os.path.exists(report_html_path):
-                                os.remove(report_html_path)
 
         else:
             st.warning(
@@ -154,4 +131,4 @@ else:
     st.info("Upload your data file to get started.")
 
 st.markdown("---")
-st.markdown("Built with ❤️ using Streamlit and Sweetviz.")
+st.markdown("Built with  using Streamlit and Sweetviz.")

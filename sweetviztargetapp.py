@@ -72,32 +72,38 @@ if uploaded_file is not None:
             selected_features = st.multiselect(
                 "Select your *Feature Columns (X)*:",
                 options=all_columns,
-                default=[col for col in all_columns if col != all_columns[-1]]
+                default=all_columns
             )
 
             # --- Target Variable (y) ---
             target_options = [col for col in all_columns if col not in selected_features]
+            if not target_options:
+                target_options = all_columns
             selected_target = st.selectbox(
                 "Select your *Target Variable (y)*:",
                 options=['None'] + target_options,
-                index=0 if 'None' in ['None'] + target_options else (
-                    target_options.index(all_columns[-1]) + 1 if all_columns[-1] in target_options else 0)
+                index=0
             )
 
-            target_feat_for_sv = selected_target if selected_target != 'None' else None
+            if selected_target == 'None':
+                target_feat_for_sv = None
+                feature_config = None
+            else:
+                target_feat_for_sv = selected_target
+                feature_config = {target_feat_for_sv: 1}
 
             st.markdown("---")
             st.header("2. Generate Sweetviz Report")
 
             if st.button("Generate Sweetviz Report"):
-                if not selected_features and target_feat_for_sv is None:
+                if not selected_features:
                     st.warning(
-                        "Please select at least some features or a target variable to generate a meaningful report.")
+                        "Please select at least some features to generate a meaningful report.")
                 else:
                     with st.spinner("Generating Sweetviz report... This might take a moment."):
                         try:
                             report_path = "sweetviz_report.html"
-                            my_report = sv.analyze(df, target_feat=target_feat_for_sv)
+                            my_report = sv.analyze(df[selected_features], target_feat=target_feat_for_sv)
                             my_report.show_html(report_path, open_browser=False)
 
                             st.success("Sweetviz report generated!")

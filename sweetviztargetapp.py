@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.preprocessing import LabelEncoder
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -80,8 +81,11 @@ if uploaded_file is not None:
                 index=len(all_columns) - 1
             )
 
-            if selected_target:
-                selected_features = [col for col in all_columns if col != selected_target]
+            selected_features = st.multiselect(
+                "Select your *Feature Columns (X)*:",
+                options=[col for col in all_columns if col != selected_target],
+                default=[col for col in all_columns if col != selected_target]
+            )
 
             st.markdown("---")
             st.header("2. Generate Sweetviz Report")
@@ -138,6 +142,15 @@ if uploaded_file is not None:
                 try:
                     X = df[selected_features]
                     y = df[selected_target]
+
+                    # Encode categorical variables
+                    le = LabelEncoder()
+                    for col in X.columns:
+                        if X[col].dtype == 'object':
+                            X[col] = le.fit_transform(X[col].astype(str))
+
+                    if model_type == "Classification":
+                        y = le.fit_transform(y.astype(str))
 
                     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 

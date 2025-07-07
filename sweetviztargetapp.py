@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 import sweetviz as sv
-import numpy as np  # Used for numerical type detection
+import numpy as np
 import warnings
 import streamlit.components.v1 as components
+import os
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -95,17 +96,20 @@ if uploaded_file is not None:
                 else:
                     with st.spinner("Generating Sweetviz report... This might take a moment."):
                         try:
+                            report_path = "sweetviz_report.html"
                             my_report = sv.analyze(df, target_feat=target_feat_for_sv)
-                            report_html = my_report.to_html()
+                            my_report.show_html(report_path, open_browser=False)
 
                             st.success("Sweetviz report generated!")
                             st.write("### Interactive Report:")
 
-                            components.html(report_html, height=1000, scrolling=True)
+                            with open(report_path, 'r', encoding='utf-8') as f:
+                                html_content = f.read()
+                            components.html(html_content, height=1000, scrolling=True)
 
                             st.download_button(
                                 label="Download Sweetviz Report (HTML)",
-                                data=report_html.encode('utf-8'),
+                                data=html_content.encode('utf-8'),
                                 file_name="sweetviz_ml_prep_report.html",
                                 mime="text/html"
                             )
@@ -114,6 +118,9 @@ if uploaded_file is not None:
                             If you selected a target variable, Sweetviz shows its relationship with all other features.
                             You can also download the report using the button above.
                             """)
+
+                            if os.path.exists(report_path):
+                                os.remove(report_path)
 
                         except Exception as e:
                             st.error(f"An unexpected error occurred while generating the Sweetviz report: {e}")

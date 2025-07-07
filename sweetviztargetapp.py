@@ -5,6 +5,11 @@ import numpy as np
 import warnings
 import streamlit.components.v1 as components
 import os
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.metrics import accuracy_score, mean_squared_error
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -12,15 +17,15 @@ warnings.filterwarnings('ignore', category=UserWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 st.set_page_config(
-    page_title="Sweetviz ML Prep App",
+    page_title="ML Model Comparison App",
     page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title(" Sweetviz ML Prep App: Feature & Target Selection")
+st.title(" ML Model Comparison App")
 st.markdown(
-    "Upload a *CSV* or *Excel (.xlsx)* file, then select your features (X) and target (y) for a tailored Sweetviz report.")
+    "Upload a *CSV* or *Excel (.xlsx)* file, then select your features (X) and target (y) for a tailored Sweetviz report and model comparison.")
 
 # --- File Uploader ---
 uploaded_file = st.file_uploader("Choose your data file", type=["csv", "xlsx"])
@@ -68,29 +73,15 @@ if uploaded_file is not None:
 
             all_columns = df.columns.tolist()
 
-            # --- Feature Inputs (X) ---
-            selected_features = st.multiselect(
-                "Select your *Feature Columns (X)*:",
-                options=all_columns,
-                default=all_columns
-            )
-
             # --- Target Variable (y) ---
-            target_options = [col for col in all_columns if col not in selected_features]
-            if not target_options:
-                target_options = all_columns
             selected_target = st.selectbox(
                 "Select your *Target Variable (y)*:",
-                options=['None'] + target_options,
-                index=0
+                options=all_columns,
+                index=len(all_columns) - 1
             )
 
-            if selected_target == 'None':
-                target_feat_for_sv = None
-                feature_config = None
-            else:
-                target_feat_for_sv = selected_target
-                feature_config = {target_feat_for_sv: 1}
+            if selected_target:
+                selected_features = [col for col in all_columns if col != selected_target]
 
             st.markdown("---")
             st.header("2. Generate Sweetviz Report")
@@ -103,7 +94,7 @@ if uploaded_file is not None:
                     with st.spinner("Generating Sweetviz report... This might take a moment."):
                         try:
                             report_path = "sweetviz_report.html"
-                            my_report = sv.analyze(df[selected_features], target_feat=target_feat_for_sv)
+                            my_report = sv.analyze(df, target_feat=selected_target, pairwise_analysis='off')
                             my_report.show_html(report_path, open_browser=False)
 
                             st.success("Sweetviz report generated!")
@@ -131,6 +122,63 @@ if uploaded_file is not None:
                         except Exception as e:
                             st.error(f"An unexpected error occurred while generating the Sweetviz report: {e}")
                             st.exception(e)
+
+            st.header("3. Select ML Model Type")
+
+            model_type = st.selectbox("Select Model Type", ["Regression", "Classification"])
+
+            if model_type == "Regression":
+                model_options = ["Linear Regression", "Decision Tree Regressor", "Random Forest Regressor"]
+            else:
+                model_options = ["Logistic Regression", "Decision Tree Classifier", "Random Forest Classifier"]
+
+            selected_models = st.multiselect("Select Models to Compare", model_options)
+
+            if st.button("Run Models"):
+                try:
+                    X = df[selected_features]
+                    y = df[selected_target]
+
+                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+                    model_results = {}
+
+                    for model_name in selected_models:
+                        if model_name == "Linear Regression":
+                            model = LinearRegression()
+                        elif model_name == "Logistic Regression":
+                            model = LogisticRegression(max_iter=1000)
+                        elif model_name == "Decision Tree Regressor":
+                            model = DecisionTreeRegressor()
+                        elif model_name == "Decision Tree Classifier":
+                            model = DecisionTreeClassifier()
+                        elif model_name == "Random Forest Regressor":
+                            model = RandomForestRegressor()
+                        elif model_name == "Random Forest Classifier":
+                            model = RandomForestClassifier()
+
+                        model.fit(X_train, y_train)
+                        y_pred = model.predict(X_test)
+
+                        if model_type == "Regression":
+                            score = mean_squared_error(y_test, y_pred)
+                            model_results[model_name] = score
+                            st.write(f"{model_name} MSE: {score}")
+                        else:
+                            score = accuracy_score(y_test, np.round(y_pred))
+                            model_results[model_name] = score
+                            st.write(f"{model_name} Accuracy: {score}")
+
+                    if model_type == "Regression":
+                        best_model = min(model_results, key=model_results.get)
+                        st.write(f"Best Model: {best_model} with MSE: {model_results[best_model]}")
+                    else:
+                        best_model = max(model_results, key=model_results.get)
+                        st.write(f"Best Model: {best_model} with Accuracy: {model_results[best_model]}")
+
+                except Exception as e:
+                    st.error(f"An error occurred while running the models: {e}")
+                    st.exception(e)
 
         else:
             st.warning(

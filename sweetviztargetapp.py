@@ -11,6 +11,7 @@ from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -162,13 +163,13 @@ if uploaded_file is not None:
                         elif model_name == "Logistic Regression":
                             model = LogisticRegression(max_iter=1000)
                         elif model_name == "Decision Tree Regressor":
-                            model = DecisionTreeRegressor()
+                            model = DecisionTreeRegressor(max_depth=5, min_samples_split=2, min_samples_leaf=1)
                         elif model_name == "Decision Tree Classifier":
-                            model = DecisionTreeClassifier()
+                            model = DecisionTreeClassifier(max_depth=5, min_samples_split=2, min_samples_leaf=1)
                         elif model_name == "Random Forest Regressor":
-                            model = RandomForestRegressor()
+                            model = RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_split=2, min_samples_leaf=1)
                         elif model_name == "Random Forest Classifier":
-                            model = RandomForestClassifier()
+                            model = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_split=2, min_samples_leaf=1)
 
                         model.fit(X_train, y_train)
                         y_pred = model.predict(X_test)
@@ -176,18 +177,38 @@ if uploaded_file is not None:
                         if model_type == "Regression":
                             score = mean_squared_error(y_test, y_pred)
                             model_results[model_name] = score
-                            st.write(f"{model_name} MSE: {score}")
+                            st.write(f"{model_name} MSE: {score:.4f}")
                         else:
                             score = accuracy_score(y_test, np.round(y_pred))
                             model_results[model_name] = score
-                            st.write(f"{model_name} Accuracy: {score}")
+                            st.write(f"{model_name} Accuracy: {score:.4f}")
 
                     if model_type == "Regression":
                         best_model = min(model_results, key=model_results.get)
-                        st.write(f"Best Model: {best_model} with MSE: {model_results[best_model]}")
+                        st.write(f"Best Model: {best_model} with MSE: {model_results[best_model]:.4f}")
+                        st.write("Prevention Techniques:")
+                        st.write("- Regularization (L1 or L2)")
+                        st.write("- Early Stopping")
+                        st.write("- Feature Selection")
+                        st.write("- Ensemble Methods")
+                        st.write("- Cross-Validation")
                     else:
                         best_model = max(model_results, key=model_results.get)
-                        st.write(f"Best Model: {best_model} with Accuracy: {model_results[best_model]}")
+                        st.write(f"Best Model: {best_model} with Accuracy: {model_results[best_model]:.4f}")
+                        st.write("Prevention Techniques:")
+                        st.write("- Handling Class Imbalance")
+                        st.write("- Feature Engineering")
+                        st.write("- Ensemble Methods")
+                        st.write("- Cross-Validation")
+                        st.write("- Hyperparameter Tuning")
+
+                    # Plot the actual vs predicted values
+                    fig, ax = plt.subplots()
+                    ax.scatter(y_test, y_pred)
+                    ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--')
+                    ax.set_xlabel('Actual Values')
+                    ax.set_ylabel('Predicted Values')
+                    st.pyplot(fig)
 
                 except Exception as e:
                     st.error(f"An error occurred while running the models: {e}")
